@@ -3,46 +3,57 @@
 # Exit on failures
 set -eo pipefail
 
-# Echo commands
-set -x
-
-echo "=========================================="
-echo "Building Angular Application..."
-echo "=========================================="
-
-# Define the application directory
 APP_DIR="src/app/eba"
+REQUIRED_NODE_VERSION="22"
 
-# Check if the application directory exists
-if [ ! -d "$APP_DIR" ]; then
-    echo "✗ ERROR: Application directory '$APP_DIR' not found"
-    exit 1
-fi
+# Function to load Node.js environment
+load_nodejs() {
+    export NVM_DIR="$HOME/.nvm"
+    [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+    nvm use "$REQUIRED_NODE_VERSION" > /dev/null 2>&1
+}
 
-# Navigate to the application directory
-cd "$APP_DIR"
+# Function to verify application directory
+verify_app_directory() {
+    if [ ! -d "$APP_DIR" ]; then
+        echo "ERROR: Application directory '$APP_DIR' not found"
+        exit 1
+    fi
+}
 
-echo ""
-echo "Installing dependencies..."
-npm install
+# Function to install dependencies
+install_dependencies() {
+    echo "Installing dependencies..."
+    npm install --silent
+}
 
-echo ""
-echo "Building Angular application..."
-# Build the Angular application for production
-npm run build -- --configuration=production
+# Function to build the application
+build_application() {
+    echo "Building Angular application..."
+    npm run build -- --configuration=production
+}
 
-echo ""
-echo "Build completed successfully!"
+# Function to verify build output
+verify_build_output() {
+    if [ ! -d "dist" ]; then
+        echo "WARNING: dist/ directory not found after build"
+        return 1
+    fi
+    echo "Build artifacts created successfully"
+}
 
-# Check if build output exists
-if [ -d "dist" ]; then
-    echo "✓ Build artifacts created in dist/"
-    ls -lh dist/
-else
-    echo "✗ WARNING: dist/ directory not found after build"
-fi
+# Main execution
+main() {
+    load_nodejs
+    verify_app_directory
+    
+    cd "$APP_DIR"
+    
+    install_dependencies
+    build_application
+    verify_build_output
+    
+    echo "Build completed"
+}
 
-echo ""
-echo "=========================================="
-echo "Build process completed"
-echo "=========================================="
+main
